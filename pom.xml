@@ -6,7 +6,11 @@
 
   <groupId>blog</groupId>
   <artifactId>blog</artifactId>
+  <packaging>pom</packaging>
   <version>1.0-SNAPSHOT</version>
+  <modules>
+    <module>blog-core</module>
+  </modules>
 
   <properties>
     <!-- Spring版本号-->
