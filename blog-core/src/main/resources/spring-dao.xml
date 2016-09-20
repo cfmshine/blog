@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+  <context:property-placeholder location="classpath:db.properties"/>
+
+  <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+    <property name="username" value="${jdbc.username}"/>
+    <property name="password" value="${jdbc.password}"/>
+    <property name="url" value="${jdbc.url}"/>
+    <!-- 配置初始化大小、最小、最大 -->
+    <property name="initialSize" value="1"/>
+    <property name="minIdle" value="1"/>
+    <property name="maxActive" value="20"/>
+    <!-- 配置获取连接等待超时的时间 -->
+    <property name="maxWait" value="60000"/>
+    <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+    <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+    <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+    <property name="minEvictableIdleTimeMillis" value="300000"/>
+    <property name="validationQuery" value="SELECT 'x'"/>
+    <property name="testWhileIdle" value="true"/>
+    <property name="testOnBorrow" value="false"/>
+    <property name="testOnReturn" value="false"/>
+    <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+    <property name="poolPreparedStatements" value="true"/>
+    <property name="maxPoolPreparedStatementPerConnectionSize" value="20"/>
+    <!-- 配置监控统计拦截的filters，去掉后监控界面sql无法统计 -->
+    <property name="filters" value="stat"/>
+  </bean>
+
+  <!-- MyBatis setting信息 -->
+  <bean id="mybatisConfigration" class="org.apache.ibatis.session.Configuration">
+    <property name="autoMappingBehavior" value="PARTIAL"/>
+    <property name="cacheEnabled" value="${mybatis.cacheEnabled:true}"/>
+    <!-- 这个配置设定全局是否启动或者禁用延迟加载（默认true） -->
+    <property name="lazyLoadingEnabled" value="false"/>
+    <!-- 当启用延迟加载时，默认为true启动即加载，false是当使用时才加载 -->
+    <property name="aggressiveLazyLoading" value="false"/>
+    <!-- 是否允许多个结果集从一个单独的语句返回 默认true -->
+    <property name="multipleResultSetsEnabled" value="true"/>
+    <!-- 使用列标签代替列名 默认为true -->
+    <property name="useColumnLabel" value="true"/>
+    <!-- 允许jdbc生成主键 默认为false -->
+    <property name="useGeneratedKeys" value="true"/>
+    <!-- MyBatis 默认的执行器 SIMPLE 简单映射 、REUSE重用预处理语句、BATCH 重用预处理语句和批量更新 -->
+    <property name="defaultExecutorType" value="SIMPLE"/>
+    <!-- 设置超时时间，它决定驱动等待一个数据库响应的时间。 -->
+    <property name="defaultStatementTimeout" value="${mybatis.statementTimeout:30000}"/>
+    <property name="localCacheScope" value="SESSION"/>
+    <!-- 自动映射实体类的名称 customer_id ==> cusomterId -->
+    <property name="mapUnderscoreToCamelCase" value="true"/>
+  </bean>
+
+  <!-- 配置session工厂 -->
+  <bean id="sqlSessionFactory"
+      class="org.mybatis.spring.SqlSessionFactoryBean">
+    <property name="dataSource" ref="dataSource"></property>
+    <property name="configuration" ref="mybatisConfigration"/>
+    <property name="mapperLocations" value="classpath:/mapper/*.xml"/>
+    <property name="plugins">
+      <array value-type="org.apache.ibatis.plugin.Interceptor">
+        <bean class="blog.plugin.PagePlugin">
+          <property name="properties">
+            <value>
+              dialect=mysql
+              pageId=.*Page.*
+            </value>
+          </property>
+        </bean>
+      </array>
+    </property>
+  </bean>
+
+  <!-- 事务配置 -->
+  <bean id="transactionManager"
+      class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+    <property name="dataSource" ref="dataSource"/>
+  </bean>
+
+  <tx:annotation-driven transaction-manager="transactionManager"/>
+
+  <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+    <constructor-arg index="0" ref="sqlSessionFactory"/>
+  </bean>
+
+  <bean id="scannerConfigurer" class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+    <property name="basePackage" value="blog.mapper"/>
+  </bean>
+
+</beans>
